@@ -38,8 +38,8 @@ class Lazz
     process: [] # tasks to process data
 
   _compilers: compilers
-  _emptyCompiler: (file, data, layout, cb) ->
-    cb(null, file, copy: true)
+  _emptyCompiler: (file, __, done) ->
+    done(undefined, undefined, copy: true)
 
   ########################################
   # Public APIs
@@ -133,8 +133,7 @@ class Lazz
         logger.warn(error, "global.readJSON")
       cb(error)
 
-    root = @path_to(".")
-    glob pattern, cwd: root, (error, files) ->
+    glob pattern, cwd: @path_to("."), (error, files) ->
       if error
         logger.error(error, "global", pattern)
         done(error)
@@ -155,8 +154,7 @@ class Lazz
 
   # read files
   _read: (type, pattern, meta, done) ->
-    root = @path_to(".")
-    glob pattern, cwd: root, (error, files) =>
+    glob pattern, cwd: @path_to("."), (error, files) =>
       if error
         logger.error(error, "content", pattern)
       else

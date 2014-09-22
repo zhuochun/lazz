@@ -1,7 +1,7 @@
 {
   "name": "lazz",
-  "version": "0.0.1",
-  "description": "An Easy Static Site Generator",
+  "version": "0.0.2",
+  "description": "An easy static site generator",
   "main": "lib/lazz.js",
   "scripts": {
     "build": "gulp build",
