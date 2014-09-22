@@ -1,10 +1,10 @@
 {
   "name": "lazz",
   "version": "0.0.1",
-  "description": "An opinionated Static Site Generator",
+  "description": "An Easy Static Site Generator",
   "main": "lib/lazz.js",
   "scripts": {
-    "build": "gulp",
+    "build": "gulp build",
     "test": "gulp test"
   },
   "keywords": [
@@ -12,12 +12,14 @@
     "site",
     "generator",
     "markdown",
+    "jade",
     "website"
   ],
   "maintainers": [
     "Wang Zhuochun <zhuochun@hotmail.com> (http://www.bicrement.com/)"
   ],
-  "license": "GPLv3",
+  "repository": "https://github.com/zhuochun/lazz.git",
+  "license": "MIT",
   "dependencies": {
     "async": "^0.9.0",
     "chalk": "^0.5.1",
