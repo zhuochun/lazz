@@ -3,10 +3,12 @@
 lazz = require "../lib/lazz"
 
 lazz.global
-  title: "Lezz Static Blog"
-  site: "http://www.bicrement.com/lazz"
+  title: "Lazz Blog"
+  site: "http://www.bicrement.com/"
   author: "Wang Zhuochun"
-.content "pages", "./pages/*"
-.asset "./asset/*"
-.rest "./*.jade"
+.global "data/*.json"
+.content "posts", "posts/*"
+.content "pages", "pages/*", layout: "page"
+.asset "asset/*"
+.rest "*.jade"
 .thatsAll()

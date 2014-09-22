@@ -1,6 +1,27 @@
 extends ./layout/default.jade
 
 block body
-  ul
-    li Menu 1
-    li Menu 2
+  h1 Welcome To #{meta.title}
+
+  div.posts
+    h1 Posts
+    each post in file.posts.slice(0, 3)
+      div.post
+        h1= post.title
+        div!= post._content
+        a(href=post.path)
+          Read Post ->
+
+  div.pages
+    h1 Pages
+    each page in file.pages.slice(0, 3)
+      ul.pages
+        li
+          a(href=page.path)= page.title
+
+  div.links
+    h1 Links
+    each link in meta.links
+      ul.links
+        li
+          a(href=link.url)= link.title

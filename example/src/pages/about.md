@@ -1,8 +1,7 @@
 ---
 title: About
-layout: page
 ---
 
 # About
 
-This is **about** page. Updated.
+This is **about** page.

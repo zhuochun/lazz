@@ -1,0 +1,12 @@
+extends ./default.jade
+
+block body
+    h1 Reading:
+        = page.title
+
+    div.content
+        != content
+
+block footer
+  p this is post footer
+  a(href="/") Back
