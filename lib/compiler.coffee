@@ -8,20 +8,25 @@ marked = require "marked"
 markedCompiler =
   extnames: [".md", ".mkd", ".markdown"],
   runner: (file, { data, layout }, done) ->
-    content = marked(file.content)
+    file._content = marked(file.content)
     if layout
-      done null, layout(site: data, page: file, content: content)
+      data.page = file
+      data.content = file._content
+      done null, layout(data)
     else
-      done null, content
+      done null, file._content
 
 jadeCompiler =
   extnames: [".jade"],
   runner: (file, { data, layout }, done) ->
-    content = jade.renderFile(file.__source, site: data, page: file)
+    data.page = file
+    data.content = undefined
+    file._content = jade.renderFile(file.__source, data)
     if layout
-      done null, layout(site: data, page: file, content: content)
+      data.content = file._content
+      done null, layout(data)
     else
-      done null, content
+      done null, file._content
 
 stylusCompiler =
   extnames: [".styl"],

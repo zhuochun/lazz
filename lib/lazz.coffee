@@ -22,10 +22,12 @@ class Lazz
       coffee: {}
 
   _data:
-    meta:   {} # global data
-    asset:  {} # assets
-    file:   {} # files
-    filter: {} # jade filter functions
+    meta:    {} # global data
+    asset:   {} # assets
+    file:    {} # files
+    filter:  {} # jade filter functions
+    page:    undefined # do not operate on this
+    content: undefined # do not operate on this
 
   _storage:
     path:   [] # asset paths
@@ -110,14 +112,11 @@ class Lazz
     stepProcess = (done) =>
       async.series @_task.process, done
 
-    stepCompile = (done) =>
+    stepWrite = (done) =>
       types = _.map(@_data.file, (files) -> files)
-      async.each types, stepWrite, done
+      async.eachSeries types, _.bind(@_write, @), done
 
-    stepWrite = (files, done) =>
-      async.each files, _.bind(@_write, @), done
-
-    async.series [stepRead, stepProcess, stepCompile], (error) ->
+    async.series [stepRead, stepProcess, stepWrite], (error) ->
       if error then logger.error(error, "failed! T_T")
       else logger.success("done! :D")
 
@@ -186,8 +185,12 @@ class Lazz
     data.content = parsed.body
     return data
 
+  # write out a list of files
+  _write: (files, done) ->
+    async.each files, _.bind(@_writeFile, @), done
+
   # write out a file
-  _write: (file, done) ->
+  _writeFile: (file, done) ->
     @_compile file, (error, content, options = {}) =>
       if options.copy
         fs.copy file.__source, file.path, done
