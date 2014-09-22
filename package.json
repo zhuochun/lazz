@@ -1,0 +1,39 @@
+{
+  "name": "lazz",
+  "version": "0.0.1",
+  "description": "An opinionated Static Site Generator",
+  "main": "lib/lazz.js",
+  "scripts": {
+    "build": "gulp",
+    "test": "gulp test"
+  },
+  "keywords": [
+    "static",
+    "site",
+    "generator",
+    "markdown",
+    "website"
+  ],
+  "maintainers": [
+    "Wang Zhuochun <zhuochun@hotmail.com> (http://www.bicrement.com/)"
+  ],
+  "license": "GPLv3",
+  "dependencies": {
+    "chalk": "^0.5.1",
+    "coffee-script": "^1.8.0",
+    "front-matter": "^0.2.0",
+    "fs-extra": "^0.11.1",
+    "glob": "^4.0.6",
+    "jade": "^1.7.0",
+    "lodash": "^2.4.1",
+    "marked": "^0.3.2",
+    "rimraf": "^2.2.8",
+    "stylus": "^0.48.1"
+  },
+  "devDependencies": {
+    "gulp": "^3.8.8",
+    "gulp-coffee": "^2.2.0",
+    "gulp-jasmine": "^1.0.1",
+    "gulp-util": "^3.0.1"
+  }
+}
