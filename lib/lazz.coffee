@@ -2,16 +2,13 @@ _ = require "lodash"
 fs = require "fs-extra"
 fm = require "front-matter"
 rm = require("rimraf").sync
-glob = require("glob").sync
+glob = require "glob"
 path = require "path"
-
+async = require "async"
 jade = require "jade"
-stylus = require "stylus"
-coffee = require "coffee-script"
-marked = require "marked"
-
 utils = require "./utils"
 logger = require "./logger"
+compilers = require "./compiler"
 
 class Lazz
   _config:
@@ -26,160 +23,186 @@ class Lazz
 
   _data:
     meta:   {} # global data
+    asset:  {} # assets
     file:   {} # files
-    asset:  [] # asset paths
-    filter: {} # filter functions for Jade
+    filter: {} # jade filter functions
 
-  _layouts: {} # cached layout
+  _storage:
+    path:   [] # asset paths
+    layout: {} # layouts
 
-  _compilers: [
-    {
-      extnames: [".md", ".mkd", ".markdown"],
-      runner: (file, data, layout, cb) ->
-        file.content = marked(file.content)
-        if layout
-          cb(null, layout(site: data, page: file))
-        else
-          cb(null, file.content)
-    },
-    {
-      extnames: [".jade"],
-      runner: (file, data, layout, cb) ->
-        cb(null, jade.renderFile(file.__source, site: data, page: file))
-    },
-    {
-      extnames: [".coffee"],
-      runner: (file, data, layout, cb) ->
-        cb(null, coffee.compile(file.content, file.coffee))
-    },
-    {
-      extnames: [".styl"],
-      runner: (file, data, layout, cb) ->
-        opts = filename: file.path, paths: data.asset
-        stylus.render(file.content, opts, cb)
-    }
-  ]
+  _task:
+    read:    [] # tasks to read files
+    process: [] # tasks to process data
 
-  # just return the file content
+  _compilers: compilers
   _emptyCompiler: (file, data, layout, cb) ->
     cb(null, file, copy: true)
 
-  constructor: -> logger.info("Lazz", "Yap.")
+  ########################################
+  # Public APIs
+  ########################################
 
   # set configurations
   config: (config) ->
     _.extend(@_config, config)
     return this
 
-  # add additional data to data.meta
+  # add more meta data
   global: (data) ->
     if _.isPlainObject(data)
       _.extend(@_data.meta, data)
     else
-      @readGlobal(data)
+      @_task.read.push(_.bind(@_readGlobal, @, data))
     return this
 
+  # transform data and files
+  # accept a function (data, done) -> {}
+  # must call done after completion
+  transform: (fn) ->
+    @_task.process.push(_.bind(fn, undefined, @_data))
+    return this
+
+  # add jade filters
+  # accept an object, e.g. { name: function }
+  filter: (filter) ->
+    _.extend(@_data.filter, filter)
+    return this
+
+  # add compilers
+  # accept:
+  #   - object, e.g. { extnames: [], runner: fun }
+  #   - or an array of objects
+  compiler: (compiler) ->
+    # custom compilers are prepend at head
+    # so it can overwrite default compilers
+    if _.isArray(compiler)
+      @_compilers = Array::concat.apply(compiler, @_compilers)
+    else
+      @_compilers.unshift(compiler)
+    return this
+
+  # add assets
+  asset: (pattern, meta) ->
+    @_task.read.push(_.bind(@_readAsset, @, pattern, meta))
+    return this
+
+  # add file types
+  content: (type, pattern, meta) ->
+    @_task.read.push(_.bind(@_read, @, type, pattern, meta))
+    return this
+
+  # add rest of files
+  rest: (pattern, meta) ->
+    @_task.read.push(_.bind(@_read, @, "rest", pattern, meta))
+    return this
+
+  # clean up destination directory
+  clean: ->
+    rm(@_config.destination)
+    return this
+
+  # output files
+  thatsAll: ->
+    stepRead = (done) =>
+      async.parallel @_task.read, done
+
+    stepProcess = (done) =>
+      async.series @_task.process, done
+
+    stepCompile = (done) =>
+      types = _.map(@_data.file, (files) -> files)
+      async.each types, stepWrite, done
+
+    stepWrite = (files, done) =>
+      async.each files, _.bind(@_write, @), done
+
+    async.series [stepRead, stepProcess, stepCompile], (error) ->
+      if error then logger.error(error, "failed! T_T")
+      else logger.success("done! :D")
+
+  ########################################
+  # Private APIs
+  ########################################
+
   # read JSON files into data.meta
-  readGlobal: (pattern) ->
-    readJSON = (file) =>
-      if utils.isJSON(file)
+  _readGlobal: (pattern, done) ->
+    readJSON = (file, cb) =>
+      try
         @_data.meta[utils.keyname(file)] = fs.readJsonSync(@path_to(file))
-      else
-        logger.info("readGlobal", file, "is not a JSON file")
+      catch error
+        logger.warn(error, "global.readJSON")
+      cb(error)
 
     root = @path_to(".")
     glob pattern, cwd: root, (error, files) ->
       if error
-        logger.error("readGlobal", pattern, error)
+        logger.error(error, "global", pattern)
+        done(error)
       else
-        readJSON(file) for file in files
+        async.each files, readJSON, done
 
-    return this
-
-  # transform data and files
-  transform: (cb) -> cb(@_data)
-
-  # add filters
-  filter: (filter) ->
-    _.extend(@_data.filter, filter)
-
-  # add file types
-  content: (type, pattern, meta) ->
-    root = @path_to(".")
-    console.log "root -> ", root
-    glob pattern, cwd: root, (error, files) =>
-      console.log "files -> ", files
+  # read assets
+  _readAsset: (pattern, meta, done) ->
+    @_read "asset", pattern, meta, (error) =>
       if error
-        logger.error("content", pattern, error)
+        logger.error(error, "asset", pattern)
+      else
+        for asset in @_data.file.asset
+          @_data.asset[path.normalize(asset.__file)] = asset.path
+          @_storage.path.push(path.dirname(asset.__file))
+        @_storage.path = _.uniq(@_storage.path)
+      done(error)
+
+  # read files
+  _read: (type, pattern, meta, done) ->
+    root = @path_to(".")
+    glob pattern, cwd: root, (error, files) =>
+      if error
+        logger.error(error, "content", pattern)
       else
         @_data.file[type] ?= []
-        console.log "type [#{type}] -> ", @_data.file[type]
-        @_read(type, file, meta) for file in files
-        console.log "type [#{type}] after -> ", @_data.file[type]
+        @_readFile(type, file, meta) for file in files
+      done(error)
 
-    return this
-
-  # rest of files
-  rest: (pattern, meta) ->
-    return @content("rest", pattern, meta)
-
-  # assets
-  asset: (pattern, meta) ->
-    @_data.asset.push(path.dirname(pattern))
-    return @content("asset", pattern, meta)
-
-  # read file and add necessary attributes
-  _read: (type, file, meta) ->
+  # read a file and add attributes
+  _readFile: (type, file, meta) ->
     return unless utils.isFile(@path_to(file))
 
-    console.log "it is file at last"
-
     buffer = fs.readFileSync(@path_to(file))
-    data = @_parse(buffer.toString(), meta)
+    data = @_parseBuffer(buffer.toString(), meta)
     data.path = utils.fixPath(file)
-    # special variables
+    data.__file = file
     data.__source = @path_to(file)
     data.__extname = path.extname(file)
 
     @_data.file[type].push(data)
 
   # read file content
-  _parse: (buffer, meta = {}) ->
-    parsed = fm(buffer)
+  _parseBuffer: (buffer, meta = {}) ->
     data = _.cloneDeep(meta)
+    parsed = fm(buffer)
     _.extend(data, parsed.attributes)
     data.content = parsed.body
     return data
 
-  # output files
-  thatsAll: ->
-    console.log "thatsAll -> ", @_data.file
-
-    for type, files of @_data.file
-      console.log type
-      @_write(file) for file in files
-    return this
-
-  # write out file
-  _write: (file) ->
+  # write out a file
+  _write: (file, done) ->
     @_compile file, (error, content, options = {}) =>
       if options.copy
-        fs.copy file.__source, file.path, (error) ->
-          if (error)
-            logger.error("copy", file.__source, error)
-          else
-            logger.success("copied", file.__source)
+        fs.copy file.__source, file.path, done
       else
-        fs.outputFile @dest_to(file.path), content, (error) ->
-          if (error)
-            logger.error("output", file.__source, error)
-          else
-            logger.success("processed", file.__source)
+        fs.outputFile @dest_to(file.path), content, done
 
   # compile file content
-  _compile: (file, cb) ->
+  _compile: (file, done) ->
     compile = @_resolveCompiler(file.__extname)
-    compile(file, @_data, @_resolveLayout(file.layout), cb)
+    compile file,
+      data: @_data,
+      layout: @_resolveLayout(file.layout),
+      storage: @_storage,
+      options: @_config.options,
+      done
 
   _resolveCompiler: (extname) ->
     for { extnames, runner } in @_compilers
@@ -187,14 +210,12 @@ class Lazz
         return runner
     return @_emptyCompiler
 
-  _resolveLayout: (layout) ->
-    return unless layout
-    return @_layouts[layout] if @_layouts[layout]
-    file = path.resolve(@_config.layout, "#{layout}.jade")
-    return @_layouts[layout] = jade.compileFile(file)
+  _resolveLayout: (name) ->
+    return unless name
+    return @_storage.layout[name] if @_storage.layout[name]
 
-  # clean up
-  clean: -> rm(@_config.destination)
+    file = path.resolve(@_config.layout, "#{name}.jade")
+    return @_storage.layout[name] = jade.compileFile(file)
 
   # resolve path based on source
   path_to: (file) ->

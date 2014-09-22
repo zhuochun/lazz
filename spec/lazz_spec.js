@@ -21,11 +21,28 @@ describe("Lazz", function() {
     });
     return expect(lazz._data.meta.title).toBe("website");
   });
-  it("transform data", function() {
-    lazz.transform(function(data) {
-      return data.special = "defined";
+  it("set globals from JSON", function(done) {
+    var task;
+    lazz.global("./fixture/*.json");
+    expect(lazz._task.read.length).toBe(1);
+    task = lazz._task.read[0];
+    return task(function() {
+      expect(lazz._data.meta.fruits).toBeDefined();
+      return done();
     });
-    return expect(lazz._data.special).toBe("defined");
+  });
+  it("transform data", function(done) {
+    var task;
+    lazz.transform(function(data, done) {
+      data.special = "defined";
+      return done();
+    });
+    expect(lazz._task.process.length).toBe(1);
+    task = lazz._task.process[0];
+    return task(function() {
+      expect(lazz._data.special).toBe("defined");
+      return done();
+    });
   });
   it("add filters", function() {
     lazz.filter({
@@ -35,9 +52,31 @@ describe("Lazz", function() {
     });
     return expect(lazz._data.filter.name).toBeDefined();
   });
-  it("parse a content file", function() {
+  it("add compiler at head", function() {
+    var compiler;
+    compiler = {
+      extnames: [".css"],
+      runner: function() {}
+    };
+    lazz.compiler(compiler);
+    return expect(lazz._compilers[0]).toBe(compiler);
+  });
+  it("add assets", function(done) {
+    var task;
+    lazz._task.read.length = 0;
+    lazz.asset("./fixture/*.styl");
+    expect(lazz._task.read.length).toBe(1);
+    task = lazz._task.read[0];
+    return task(function() {
+      expect(lazz._data.file.asset.length).toBe(1);
+      expect(lazz._storage.path.length).toBe(1);
+      expect(lazz._data.asset['fixture/main.styl']).toBeDefined();
+      return done();
+    });
+  });
+  it("parse a file buffer", function() {
     var data;
-    data = lazz._parse("---\ntitle: hello world\nlayout: post\n---\n\nthis is content.", {
+    data = lazz._parseBuffer("---\ntitle: hello world\nlayout: post\n---\n\nthis is content.", {
       keyword: "lazz"
     });
     expect(data.keyword).toBe("lazz");
@@ -48,7 +87,7 @@ describe("Lazz", function() {
     var post;
     expect(lazz._data.file["post"]).toBeUndefined();
     lazz._data.file["post"] = [];
-    lazz._read("post", "./fixture/post.md");
+    lazz._readFile("post", "./fixture/post.md");
     expect(lazz._data.file["post"]).toBeDefined();
     post = lazz._data.file["post"][0];
     expect(post.layout).toBe("post");

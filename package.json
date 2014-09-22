@@ -19,6 +19,7 @@
   ],
   "license": "GPLv3",
   "dependencies": {
+    "async": "^0.9.0",
     "chalk": "^0.5.1",
     "coffee-script": "^1.8.0",
     "front-matter": "^0.2.0",

@@ -1,9 +1,15 @@
 chalk = require "chalk"
 
 module.exports =
-  info: (title, msg) ->
-    chalk.white "[#{title}]: #{msg}"
-  success: (title, msg) ->
-    chalk.green "[#{title}]: #{msg}"
-  error: (title, info, e) ->
-    chalk.bold.red "[#{title}]: #{info} - #{e.message}"
+  log: (args...) ->
+    console.log chalk.gray.apply(undefined, args)
+  info: (args...) ->
+    console.log chalk.blue.apply(undefined, args)
+  success: (args...) ->
+    console.log chalk.green.apply(undefined, args)
+  error: (error, args...) ->
+    console.log chalk.bgYellow.red.apply(undefined, args),
+      " =>", chalk.red(error.message),
+  warn: (error, args...) ->
+    console.log chalk.magenta.apply(undefined, args),
+      " =>", chalk.magenta(error.message),

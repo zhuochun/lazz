@@ -17,16 +17,44 @@ describe "Lazz", ->
     lazz.global(title: "website")
     expect(lazz._data.meta.title).toBe("website")
 
-  it "transform data", ->
-    lazz.transform((data) -> data.special = "defined")
-    expect(lazz._data.special).toBe("defined")
+  it "set globals from JSON", (done) ->
+    lazz.global("./fixture/*.json")
+    expect(lazz._task.read.length).toBe(1)
+    task = lazz._task.read[0]
+    task ->
+      expect(lazz._data.meta.fruits).toBeDefined()
+      done()
+
+  it "transform data", (done) ->
+    lazz.transform((data, done) -> data.special = "defined"; done())
+    expect(lazz._task.process.length).toBe(1)
+    task = lazz._task.process[0]
+    task ->
+      expect(lazz._data.special).toBe("defined")
+      done()
 
   it "add filters", ->
     lazz.filter({ name: -> "name" })
     expect(lazz._data.filter.name).toBeDefined()
 
-  it "parse a content file", ->
-    data = lazz._parse("""
+  it "add compiler at head", ->
+    compiler = { extnames: [".css"], runner: () -> }
+    lazz.compiler(compiler)
+    expect(lazz._compilers[0]).toBe(compiler)
+
+  it "add assets", (done) ->
+    lazz._task.read.length = 0
+    lazz.asset("./fixture/*.styl")
+    expect(lazz._task.read.length).toBe(1)
+    task = lazz._task.read[0]
+    task ->
+      expect(lazz._data.file.asset.length).toBe(1)
+      expect(lazz._storage.path.length).toBe(1)
+      expect(lazz._data.asset['fixture/main.styl']).toBeDefined()
+      done()
+
+  it "parse a file buffer", ->
+    data = lazz._parseBuffer("""
       ---
       title: hello world
       layout: post
@@ -41,7 +69,7 @@ describe "Lazz", ->
   it "read a file", ->
     expect(lazz._data.file["post"]).toBeUndefined()
     lazz._data.file["post"] = []
-    lazz._read("post", "./fixture/post.md")
+    lazz._readFile("post", "./fixture/post.md")
     expect(lazz._data.file["post"]).toBeDefined()
     post = lazz._data.file["post"][0]
     expect(post.layout).toBe("post")
