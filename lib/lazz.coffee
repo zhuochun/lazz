@@ -22,12 +22,12 @@ class Lazz
       coffee: {}
 
   _data:
-    meta:    {} # global data
+    site:    {} # site meta data
     asset:   {} # assets
     file:    {} # files
-    filter:  {} # jade filter functions
-    page:    undefined # do not operate on this
-    content: undefined # do not operate on this
+    fn:      {} # jade filter functions
+    page:    undefined # do not operate on this, used in compilers
+    content: undefined # do not operate on this, used in compilers
 
   _storage:
     path:   [] # asset paths
@@ -50,25 +50,25 @@ class Lazz
     _.extend(@_config, config)
     return this
 
-  # add more meta data
+  # add more site meta data
   global: (data) ->
     if _.isPlainObject(data)
-      _.extend(@_data.meta, data)
+      _.extend(@_data.site, data)
     else
       @_task.read.push(_.bind(@_readGlobal, @, data))
     return this
 
   # transform data and files
   # accept a function (data, done) -> {}
-  # must call done after completion
+  # must call `done` after completion
   transform: (fn) ->
     @_task.process.push(_.bind(fn, undefined, @_data))
     return this
 
   # add jade filters
-  # accept an object, e.g. { name: function }
-  filter: (filter) ->
-    _.extend(@_data.filter, filter)
+  # accept a filter name and a function
+  filter: (filter, fn) ->
+    @_data.fn[filter] = _.bind(fn, @_data)
     return this
 
   # add compilers
@@ -124,11 +124,11 @@ class Lazz
   # Private APIs
   ########################################
 
-  # read JSON files into data.meta
+  # read JSON files into data.site
   _readGlobal: (pattern, done) ->
     readJSON = (file, cb) =>
       try
-        @_data.meta[utils.keyname(file)] = fs.readJsonSync(@path_to(file))
+        @_data.site[utils.keyname(file)] = fs.readJsonSync(@path_to(file))
       catch error
         logger.warn(error, "global.readJSON")
       cb(error)

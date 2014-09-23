@@ -15,14 +15,14 @@ describe "Lazz", ->
 
   it "set globals", ->
     lazz.global(title: "website")
-    expect(lazz._data.meta.title).toBe("website")
+    expect(lazz._data.site.title).toBe("website")
 
   it "set globals from JSON", (done) ->
     lazz.global("./fixture/*.json")
     expect(lazz._task.read.length).toBe(1)
     task = lazz._task.read[0]
     task ->
-      expect(lazz._data.meta.fruits).toBeDefined()
+      expect(lazz._data.site.fruits).toBeDefined()
       done()
 
   it "transform data", (done) ->
@@ -34,8 +34,8 @@ describe "Lazz", ->
       done()
 
   it "add filters", ->
-    lazz.filter({ name: -> "name" })
-    expect(lazz._data.filter.name).toBeDefined()
+    lazz.filter("name", -> @ )
+    expect(lazz._data.fn.name()).toBe(lazz._data)
 
   it "add compiler at head", ->
     compiler = { extnames: [".css"], runner: () -> }
