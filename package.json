@@ -1,6 +1,6 @@
 {
   "name": "lazz",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "An easy static site generator",
   "main": "lib/lazz.js",
   "scripts": {

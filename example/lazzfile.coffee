@@ -2,10 +2,7 @@
 
 lazz = require "../lib/lazz"
 
-lazz.global
-  title: "Lazz Blog"
-  site: "http://www.bicrement.com/"
-  author: "Wang Zhuochun"
+lazz
 .global "data/*.json"
 .content "posts", "posts/*"
 .content "pages", "pages/*", layout: "page"

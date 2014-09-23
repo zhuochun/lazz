@@ -1,7 +1,7 @@
 extends ./layout/default.jade
 
 block body
-  h1 Welcome To #{meta.title}
+  h1 Welcome To #{site.title}
 
   div.posts
     h1 Posts
@@ -21,7 +21,7 @@ block body
 
   div.links
     h1 Links
-    each link in meta.links
+    each link in site.links
       ul.links
         li
           a(href=link.url)= link.title

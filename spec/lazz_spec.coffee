@@ -35,7 +35,7 @@ describe "Lazz", ->
 
   it "add filters", ->
     lazz.helper("name", -> @ )
-    expect(lazz._data.fn.$name()).toBe(lazz._data)
+    expect(lazz._data.$name()).toBe(lazz._data)
 
   it "add compiler at head", ->
     compiler = { extnames: [".css"], runner: () -> }

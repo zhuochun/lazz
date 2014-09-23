@@ -19,7 +19,7 @@ describe("Lazz", function() {
     lazz.global({
       title: "website"
     });
-    return expect(lazz._data.meta.title).toBe("website");
+    return expect(lazz._data.site.title).toBe("website");
   });
   it("set globals from JSON", function(done) {
     var task;
@@ -27,13 +27,13 @@ describe("Lazz", function() {
     expect(lazz._task.read.length).toBe(1);
     task = lazz._task.read[0];
     return task(function() {
-      expect(lazz._data.meta.fruits).toBeDefined();
+      expect(lazz._data.site.fruits).toBeDefined();
       return done();
     });
   });
-  it("transform data", function(done) {
+  it("process data", function(done) {
     var task;
-    lazz.transform(function(data, done) {
+    lazz.process(function(data, done) {
       data.special = "defined";
       return done();
     });
@@ -45,12 +45,10 @@ describe("Lazz", function() {
     });
   });
   it("add filters", function() {
-    lazz.filter({
-      name: function() {
-        return "name";
-      }
+    lazz.helper("name", function() {
+      return this;
     });
-    return expect(lazz._data.filter.name).toBeDefined();
+    return expect(lazz._data.$name()).toBe(lazz._data);
   });
   it("add compiler at head", function() {
     var compiler;
