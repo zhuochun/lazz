@@ -25,8 +25,8 @@ describe "Lazz", ->
       expect(lazz._data.site.fruits).toBeDefined()
       done()
 
-  it "transform data", (done) ->
-    lazz.transform((data, done) -> data.special = "defined"; done())
+  it "process data", (done) ->
+    lazz.process((data, done) -> data.special = "defined"; done())
     expect(lazz._task.process.length).toBe(1)
     task = lazz._task.process[0]
     task ->
@@ -34,8 +34,8 @@ describe "Lazz", ->
       done()
 
   it "add filters", ->
-    lazz.filter("name", -> @ )
-    expect(lazz._data.fn.name()).toBe(lazz._data)
+    lazz.helper("name", -> @ )
+    expect(lazz._data.fn.$name()).toBe(lazz._data)
 
   it "add compiler at head", ->
     compiler = { extnames: [".css"], runner: () -> }

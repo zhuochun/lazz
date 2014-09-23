@@ -23,11 +23,8 @@ class Lazz
 
   _data:
     site:    {} # site meta data
-    asset:   {} # assets
     file:    {} # files
-    fn:      {} # jade filter functions
-    page:    undefined # do not operate on this, used in compilers
-    content: undefined # do not operate on this, used in compilers
+    asset:   {} # assets
 
   _storage:
     path:   [] # asset paths
@@ -58,17 +55,19 @@ class Lazz
       @_task.read.push(_.bind(@_readGlobal, @, data))
     return this
 
-  # transform data and files
-  # accept a function (data, done) -> {}
-  # must call `done` after completion
-  transform: (fn) ->
+  # process data and files
+  # accept
+  #   - a function (data, done) -> {}
+  #     the function must call `done` after execution
+  process: (fn) ->
     @_task.process.push(_.bind(fn, undefined, @_data))
     return this
 
-  # add jade filters
-  # accept a filter name and a function
-  filter: (filter, fn) ->
-    @_data.fn[filter] = _.bind(fn, @_data)
+  # add jade helpers
+  # accept a helper name and its function
+  # all helpers will be prefixed with '$'
+  helper: (name, fn) ->
+    @_data["$#{name}"] = _.bind(fn, @_data)
     return this
 
   # add compilers
